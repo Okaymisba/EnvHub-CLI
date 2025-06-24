@@ -1,6 +1,7 @@
 import typer
 
 from src import auth
+from src import clone
 
 app = typer.Typer()
 
@@ -34,6 +35,11 @@ def whoami():
         typer.secho(f"Logged in as: {email}", fg=typer.colors.CYAN)
     else:
         typer.secho("You are not logged in", fg=typer.colors.RED)
+
+
+@app.command("clone")
+def clone_project(project_name: str):
+    clone.clone(project_name)
 
 
 if __name__ == "__main__":
