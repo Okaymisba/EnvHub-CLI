@@ -146,7 +146,7 @@ def get_authenticated_client() -> Client | None:
     session_data = _load_session()
     if not session_data:
         typer.secho("Not logged in. Please login first using the 'login' command.", fg=typer.colors.RED)
-        return None
+        exit(1)
 
     client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -173,6 +173,7 @@ def get_authenticated_client() -> Client | None:
         if "Invalid Refresh Token" in str(e):
             _clear_session()
             typer.secho("Session expired. Please login again.", fg=typer.colors.RED)
+            exit(1)
         else:
             typer.secho(f"Authentication error: {str(e)}", fg=typer.colors.RED)
         return None

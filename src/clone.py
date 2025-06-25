@@ -1,12 +1,15 @@
-from typing import Optional, List
+import json
+import pathlib
 
-import supabase
 import typer
+from typer import style
 
 from src.auth import get_authenticated_client
+from src.services.getCurrentEnvVariables import get_current_env_variables
+from src.services.getCurrentUserRole import get_current_user_role
 
 
-def clone(project_nam: str):
+async def clone(project_nam: str):
     """
     Clone the environment variables of a project to a .env file.
 
@@ -18,9 +21,22 @@ def clone(project_nam: str):
     """
     if not project_nam:
         return typer.secho("Project name is required", fg=typer.colors.RED)
+
     client = get_authenticated_client()
 
-    typer.secho(f"Cloning {project_nam}...")
+    envhub_config_file = pathlib.Path.cwd() / ".envhub/config.json"
+    if envhub_config_file.exists():
+        typer.secho(f"This folder is already initialized with a different project.")
+        typer.secho(
+            "If you want to clone " +
+            style(project_nam, fg=typer.colors.BRIGHT_CYAN, bold=True) +
+            " to this folder, please run " +
+            style("envhub reset", fg=typer.colors.BRIGHT_YELLOW, bold=True) +
+            " first."
+        )
+        exit(1)
+
+    typer.secho(f"Cloning " + style(project_nam, fg=typer.colors.BRIGHT_CYAN, bold=True) + f"...")
 
     project_id = client.table("projects") \
         .select("id") \
@@ -32,70 +48,43 @@ def clone(project_nam: str):
 
     envs = get_current_env_variables(client, project_id.data[0]["id"])
 
-    dot_env_file = ".env"
+    role = await get_current_user_role(client, project_id.data[0]["id"])
+
+    envhub_config_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(envhub_config_file, "w") as f:
+        json.dump({
+            "name": project_nam,
+            "id": project_id.data[0]["id"],
+            "role": role
+        }, f, indent=2)
+
+    dot_env_file = pathlib.Path.cwd() / ".env"
+    dot_env_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dot_env_file, "w") as f:
         for env in envs:
             f.write(f"{env['env_name']}={env['env_value_encrypted']}\n")
 
-    typer.secho(f"Cloned {project_nam} to {dot_env_file}")
+    gitignore_file = pathlib.Path.cwd() / ".gitignore"
+    gitignore_file.parent.mkdir(parents=True, exist_ok=True)
+
+    existing_content = ""
+    if gitignore_file.exists():
+        with open(gitignore_file, "r") as f:
+            existing_content = f.read()
+
+    if ".env" not in existing_content:
+        with open(gitignore_file, "a") as f:
+            if existing_content and not existing_content.endswith("\n"):
+                f.write("\n")
+            f.write(".env\n")
+
+    if ".envhub" not in existing_content:
+        with open(gitignore_file, "a") as f:
+            if existing_content and not existing_content.endswith("\n"):
+                f.write("\n")
+            f.write(".envhub\n")
+
+    typer.secho(
+        f"successfully cloned " + style(project_nam, fg=typer.colors.BRIGHT_CYAN, bold=True) + f" to .env")
 
     return None
-
-
-def get_env_variables(client: supabase.Client, project_id: str, version_id: Optional[str] = None) -> List[dict]:
-    """
-    Fetches environment variables from the Supabase database for a given project.
-
-    Args:
-        client (supabase.Client): The Supabase client used to interact with the database.
-        project_id (str): The ID of the project whose environment variables are to be fetched.
-        version_id (Optional[str], optional): The version ID of the environment variables. If not provided,
-                                              fetches variables not specific to a version. Defaults to None.
-
-    Returns:
-        List[dict]: A list of dictionaries containing environment variables, sorted by environment name.
-                    Returns an empty list if no variables are found or if an error occurs.
-    """
-    try:
-        query = client.table("env_variables") \
-            .select("*") \
-            .eq("project_id", project_id)
-
-        if version_id:
-            query = query.eq("version_id", version_id)
-
-        response = query.order("env_name").execute()
-        return response.data or []
-    except Exception as e:
-        typer.secho(f"Error fetching environment variables: {str(e)}", fg=typer.colors.RED)
-        return []
-
-
-def get_current_env_variables(client: supabase.Client, project_id: str) -> List[dict]:
-    """
-    Fetches the current environment variables from the Supabase database for a given project.
-
-    Args:
-        client (supabase.Client): The Supabase client used to interact with the database.
-        project_id (str): The ID of the project whose environment variables are to be fetched.
-
-    Returns:
-        List[dict]: A list of dictionaries containing environment variables, sorted by environment name.
-                    Returns an empty list if no variables are found or if an error occurs.
-    """
-    try:
-        version_resp = client.table("env_versions") \
-            .select("id") \
-            .eq("project_id", project_id) \
-            .order("version_number", desc=True) \
-            .limit(1) \
-            .execute()
-
-        if not version_resp.data:
-            return []
-
-        latest_version_id = version_resp.data[0]["id"]
-        return get_env_variables(client, project_id, latest_version_id)
-    except Exception as e:
-        typer.secho(f"Error fetching environment versions: {str(e)}", fg=typer.colors.RED)
-        return []

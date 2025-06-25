@@ -1,3 +1,5 @@
+import asyncio
+
 import typer
 
 from src import auth
@@ -39,7 +41,7 @@ def whoami():
 
 @app.command("clone")
 def clone_project(project_name: str):
-    clone.clone(project_name)
+    asyncio.run(clone.clone(project_name))
 
 
 if __name__ == "__main__":
