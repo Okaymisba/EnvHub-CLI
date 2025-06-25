@@ -5,6 +5,23 @@ import typer
 
 
 async def get_current_user_role(client: supabase.Client, project_id: str) -> Optional[str]:
+    """
+    Fetches the current user's role for a specific project.
+
+    This function retrieves the role of the authenticated user for a specific
+    project by querying the 'project_members' table from the Supabase client.
+    If the user is not part of the project or the role could not be determined,
+    the function returns None. In case of an error during the process, the function
+    displays an error message and terminates the program.
+
+    :param client: Supabase client instance used to query the database.
+    :type client: supabase.Client
+    :param project_id: ID of the project for which the user's role is being fetched.
+    :type project_id: str
+    :return: The role of the current user in the specified project, or None if the user
+             does not have a role in the project.
+    :rtype: Optional[str]
+    """
     try:
         user_id = client.auth.get_user().user.id
         if not user_id:

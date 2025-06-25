@@ -11,13 +11,21 @@ from src.services.getCurrentUserRole import get_current_user_role
 
 async def clone(project_nam: str):
     """
-    Clone the environment variables of a project to a .env file.
+    Asynchronously clones an environment configuration for the specified project name.
+    This function interacts with the backend to fetch project-specific environment
+    variables, user roles, and maintains local `.envfile` configurations and related
+    project files. Additionally, it handles existing folder configurations and Git
+    ignore rules.
 
-    Args:
-        project_nam (str): The name of the project to clone.
+    If the folder is already initialized with a different project, it exits with a
+    suggestion to reset the folder. On a successful clone operation, it writes the
+    necessary configuration files and appends `.env` and `.envhub` to the `.gitignore`.
 
-    Returns:
-        None
+    :param project_nam: The name of the project to clone its environment configurations.
+    :type project_nam: str
+    :return: None if the cloning process completes or terminates early due to errors.
+    :rtype: None
+    :raises ValueError: If the `project_nam` is not provided or the project does not exist.
     """
     if not project_nam:
         return typer.secho("Project name is required", fg=typer.colors.RED)
