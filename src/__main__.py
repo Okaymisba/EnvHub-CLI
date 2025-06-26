@@ -2,7 +2,7 @@ import asyncio
 
 import typer
 
-from src import auth
+from src import auth, reset
 from src import clone
 
 app = typer.Typer()
@@ -42,6 +42,11 @@ def whoami():
 @app.command("clone")
 def clone_project(project_name: str):
     asyncio.run(clone.clone(project_name))
+
+
+@app.command("reset")
+def reset_folder():
+    reset.reset()
 
 
 if __name__ == "__main__":

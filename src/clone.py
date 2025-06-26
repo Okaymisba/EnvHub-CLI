@@ -11,28 +11,31 @@ from src.services.getCurrentUserRole import get_current_user_role
 
 async def clone(project_nam: str):
     """
-    Asynchronously clones an environment configuration for the specified project name.
-    This function interacts with the backend to fetch project-specific environment
-    variables, user roles, and maintains local `.envfile` configurations and related
-    project files. Additionally, it handles existing folder configurations and Git
-    ignore rules.
+    Clones a project and initializes local environment files required for the
+    project.
 
-    If the folder is already initialized with a different project, it exits with a
-    suggestion to reset the folder. On a successful clone operation, it writes the
-    necessary configuration files and appends `.env` and `.envhub` to the `.gitignore`.
+    This function performs the following steps:
+    1. Checks if the provided project name is valid.
+    2. Authenticates the client for further operations.
+    3. Ensures the current folder is not already initialized with another project.
+    4. Retrieves environment variables and user role associated with the project.
+    5. Creates the `.envhub` configuration file with project details.
+    6. Creates or updates the `.env` file with the encrypted environment variables.
+    7. Updates the `.gitignore` file to ensure `.env` and `.envhub` are ignored.
 
-    :param project_nam: The name of the project to clone its environment configurations.
+    :param project_nam: Name of the project to be cloned.
     :type project_nam: str
-    :return: None if the cloning process completes or terminates early due to errors.
+
+    :return: None if successful. Prints error messages to the console and may
+        exit the program on failure.
     :rtype: None
-    :raises ValueError: If the `project_nam` is not provided or the project does not exist.
     """
     if not project_nam:
         return typer.secho("Project name is required", fg=typer.colors.RED)
 
     client = get_authenticated_client()
 
-    envhub_config_file = pathlib.Path.cwd() / ".envhub/config.json"
+    envhub_config_file = pathlib.Path.cwd() / ".envhub"
     if envhub_config_file.exists():
         typer.secho(f"This folder is already initialized with a different project.")
         typer.secho(
