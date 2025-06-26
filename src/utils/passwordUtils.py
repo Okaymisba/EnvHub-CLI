@@ -1,71 +1,75 @@
 import base64
-import hashlib
-import hmac
 import os
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class PasswordUtils:
     @staticmethod
     def hash_password(password: str) -> str:
-
         """
-        Hash a password for storing.
+        Generates a salted and hashed password using PBKDF2-HMAC-SHA256 for secure password storage.
 
-        Salts the password with 16 bytes of random data and then applies
-        100,000 iterations of HMAC-SHA256 to it. The resulting hash is
-        32 bytes long and is base64 encoded for easy storage.
+        This method creates a random cryptographic salt, combines it with the given password,
+        and applies the PBKDF2-HMAC-SHA256 algorithm to derive a secure hash. The resulting
+        salt and hash are then concatenated and base64-encoded for storage or further processing.
 
-        Args:
-            password: The password to hash.
+        The salt ensures that even if two users have the same password, their hashes
+        will be different. The function uses a fixed set of iterations and hash length
+        to provide consistent and strong security.
 
-        Returns:
-            A base64 encoded string of the hashed password.
+        :param password: The plaintext password to be securely hashed.
+        :type password: str
+        :return: A base64-encoded string containing the concatenated salt and password hash.
+        :rtype: str
         """
         salt = os.urandom(16)
-        hash_bytes = hashlib.pbkdf2_hmac(
-            'sha256',
-            password.encode('utf-8'),
-            salt,
-            100_000,
-            dklen=32  # 256 bits
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
         )
-
+        hash_bytes = kdf.derive(password.encode('utf-8'))
         combined = salt + hash_bytes
         return base64.b64encode(combined).decode('utf-8')
 
     @staticmethod
     def verify_password(password: str, stored_hash: str) -> bool:
-
         """
-        Verify a password against a stored hash.
+        Verify if the provided password matches the stored hash using PBKDF2-HMAC
+        and SHA-256 as the hashing algorithm.
 
-        Verifies a password against a stored hash produced by
-        `hash_password`. The stored hash is expected to be a base64
-        encoded string of the form `salt + hash`, where `salt` is 16
-        bytes of random data and `hash` is the result of 100,000
-        iterations of HMAC-SHA256 using the password and salt.
+        This method decodes the stored hash, extracts the salt and the original hash
+        bytes, and derives a new hash from the provided password using the extracted
+        salt. It then compares the new hash with the stored one to determine if they
+        match.
 
-        Args:
-            password: The password to verify.
-            stored_hash: The stored hash to verify against.
-
-        Returns:
-            True if the password matches the stored hash, False otherwise.
+        :param password: The password input that needs to be verified.
+        :type password: str
+        :param stored_hash: The base64 encoded string representing the stored
+            password hash and salt.
+        :type stored_hash: str
+        :return: True if the password matches the stored hash, else False.
+        :rtype: bool
         """
         try:
             combined = base64.b64decode(stored_hash.encode('utf-8'))
             salt = combined[:16]
             stored_hash_bytes = combined[16:]
 
-            derived_hash = hashlib.pbkdf2_hmac(
-                'sha256',
-                password.encode('utf-8'),
-                salt,
-                100_000,
-                dklen=32
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=100000,
             )
+            derived_hash = kdf.derive(password.encode('utf-8'))
 
-            return hmac.compare_digest(stored_hash_bytes, derived_hash)
+            result = bytes(stored_hash_bytes) == bytes(derived_hash)
+
+            return result
         except Exception as e:
             print("Password verification error:", e)
             return False

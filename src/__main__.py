@@ -4,6 +4,7 @@ import typer
 
 from src import auth, reset
 from src import clone
+from src.decrypt import decrypt_runtime_and_run_command
 
 app = typer.Typer()
 
@@ -47,6 +48,12 @@ def clone_project(project_name: str):
 @app.command("reset")
 def reset_folder():
     reset.reset()
+
+
+@app.command("decrypt")
+def decrypt_command(command: list[str] = typer.Argument(..., help="Command to run with decrypted environment")):
+    command_str = " ".join(command)
+    decrypt_runtime_and_run_command(command_str)
 
 
 if __name__ == "__main__":

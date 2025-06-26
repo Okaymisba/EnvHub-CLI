@@ -9,19 +9,20 @@ from src.services.getCurrentEnvVariables import get_current_env_variables
 from src.services.getCurrentUserRole import get_current_user_role
 from src.services.getEncryptedProjectPassword import gen_encrypted_project_password
 from src.services.getProjectPassword import get_project_password
+from src.utils.passwordUtils import PasswordUtils
 
 
 async def clone(project_name: str):
     """
-    Clones an existing project configuration and environment variables to the current directory.
-    This involves fetching project details, environment variables, user roles, and optionally project
-    passwords. It also prepares required files like `.env` and `.envhub`, and updates `.gitignore`
-    to commit safely, preventing unintended secrets exposure.
+    Clones an existing project and sets up the local development environment accordingly.
+    This includes downloading the project’s environment variables, managing passwords
+    based on the user's role, and generating the required configuration files.
 
-    :param project_name: The name of the project to be cloned
+    :param project_name: The name of the project to be cloned.
     :type project_name: str
     :return: None
-    :raises ValueError: If the project name is not provided or the project does not exist
+    :rtype: NoneType
+    :raises Exit: If critical errors occur during the process, the application will terminate.
     """
     if not project_name:
         return typer.secho("Project name is required", fg=typer.colors.RED)
@@ -55,20 +56,45 @@ async def clone(project_name: str):
     role = await get_current_user_role(client, project_id.data[0]["id"])
 
     password_data = dict()
-
+    password_utils = PasswordUtils()
     if role == "owner":
         password_hash = get_project_password(client, project_id.data[0]["id"], project_id.data[0]["user_id"])
         if not password_hash:
             typer.secho("Failed to fetch project password", fg=typer.colors.RED)
             exit(1)
+
+        password = typer.prompt(
+            "Enter the project password.\nThis is the password that you set when creating the project.\n",
+            hide_input=True)
+        if not password:
+            typer.secho("Password is required", fg=typer.colors.RED)
+            exit(1)
+
+        if not password_utils.verify_password(password, password_hash):
+            typer.secho("Incorrect password", fg=typer.colors.RED)
+            exit(1)
+
         password_data.update({
+            "password": password,
             "password_hash": password_hash
         })
+
     elif role == "admin" or role == "member":
         encrypted_password_data = gen_encrypted_project_password(client, project_id.data[0]["id"],
                                                                  project_id.data[0]["user_id"])
         if not encrypted_password_data:
             typer.secho("Failed to fetch project password", fg=typer.colors.RED)
+            exit(1)
+
+        password = typer.prompt(
+            "Enter the password for this project.\nThis is the password that the owner of ths project set for you.\nIf you don't know the password, contact the owner",
+            hide_input=True)
+        if not password:
+            typer.secho("Password is required", fg=typer.colors.RED)
+            exit(1)
+
+        if encrypted_password_data["access_password_hash"] != password_utils.hash_password(password):
+            typer.secho("Incorrect password", fg=typer.colors.RED)
             exit(1)
 
         password_data.update({
@@ -78,7 +104,8 @@ async def clone(project_name: str):
                 "ciphertext": encrypted_password_data["ciphertext"],
                 "tag": encrypted_password_data["tag"]
             },
-            "access_password_hash": encrypted_password_data["access_password_hash"]
+            "access_password_hash": encrypted_password_data["access_password_hash"],
+            "password": password
         })
 
     envhub_config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -86,7 +113,7 @@ async def clone(project_name: str):
     with open(envhub_config_file, "w") as f:
         json.dump({
             "name": project_name,
-            "id": project_id.data[0]["id"],
+            "project_id": project_id.data[0]["id"],
             "role": role,
             **password_data
         }, f, indent=2)
