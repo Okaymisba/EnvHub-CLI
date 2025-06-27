@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 import typer
@@ -8,8 +7,8 @@ from supabase import create_client, Client
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = "https://otzukwvudeucxbrrnhvx.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90enVrd3Z1ZGV1Y3hicnJuaHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1Nzc3OTQsImV4cCI6MjA2NjE1Mzc5NH0.jiqXBBOLS_KZGUtLvP90Tr4dCAEQXaqg_nZO_rH4Ty8"
 SESSION_PATH = Path.home() / ".EnvHub" / ".supacli_session.json"
 
 
