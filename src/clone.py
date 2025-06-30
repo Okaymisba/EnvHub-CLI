@@ -7,22 +7,24 @@ from typer import style
 from src.auth import get_authenticated_client
 from src.services.getCurrentEnvVariables import get_current_env_variables
 from src.services.getCurrentUserRole import get_current_user_role
-from src.services.getEncryptedProjectPassword import gen_encrypted_project_password
+from src.services.getEncryptedProjectPassword import get_encrypted_project_password
 from src.services.getProjectPassword import get_project_password
 from src.utils.passwordUtils import PasswordUtils
 
 
 async def clone(project_name: str):
     """
-    Clones an existing project and sets up the local development environment accordingly.
-    This includes downloading the project’s environment variables, managing passwords
-    based on the user's role, and generating the required configuration files.
+    Clones the specified project to the current directory, initializing the configuration
+    and environment files required for the project. This function handles validation of the
+    project name, authorization checks, password verification, encryption handling, and
+    file management for the `.envhub` and `.env` files. It also ensures `.gitignore` is
+    updated appropriately to prevent sensitive files from being committed to version control.
 
     :param project_name: The name of the project to be cloned.
     :type project_name: str
-    :return: None
-    :rtype: NoneType
-    :raises Exit: If critical errors occur during the process, the application will terminate.
+    :return: None if the project is successfully cloned; otherwise, displays an error message.
+    :rtype: None
+    :raises SystemExit: On encountering critical errors or invalid input requiring termination.
     """
     if not project_name:
         return typer.secho("Project name is required", fg=typer.colors.RED)
@@ -80,7 +82,7 @@ async def clone(project_name: str):
         })
 
     elif role == "admin" or role == "member":
-        encrypted_password_data = gen_encrypted_project_password(client, project_id.data[0]["id"],
+        encrypted_password_data = get_encrypted_project_password(client, project_id.data[0]["id"],
                                                                  project_id.data[0]["user_id"])
         if not encrypted_password_data:
             typer.secho("Failed to fetch project password", fg=typer.colors.RED)

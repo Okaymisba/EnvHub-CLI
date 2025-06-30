@@ -2,26 +2,25 @@ import supabase
 import typer
 
 
-def gen_encrypted_project_password(client: supabase.Client, project_id: str, user_id: str):
+def get_encrypted_project_password(client: supabase.Client, project_id: str, user_id: str):
     """
-    Generates a structured dictionary containing encrypted project password parts and the
-    associated access password hash for a specific user and project.
+    Fetches the encrypted project password and associated access password hash for a specific
+    user in a given project. The function queries the `project_members` table to retrieve
+    the necessary data and parses the `encrypted_project_password` into its components.
 
-    The function retrieves the required data from the "project_members" table in the database
-    using the provided client instance. If the encrypted project password or the access password
-    hash is missing, it returns None. If the encrypted project password has an invalid format,
-    an error is raised, and execution terminates with an error message.
-
-    :param client: The Supabase client instance used for database queries.
+    :param client: An instance of supabase.Client used to interact with the database.
     :type client: supabase.Client
-    :param project_id: The unique identifier of the project for which the password is being
-        retrieved.
+
+    :param project_id: Unique identifier of the project for which the password is fetched.
     :type project_id: str
-    :param user_id: The unique identifier of the user for whom the project password is being
-        retrieved.
+
+    :param user_id: Unique identifier of the user whose access and project-related
+        passwords are retrieved.
     :type user_id: str
-    :return: A dictionary containing the `ciphertext`, `salt`, `nonce`, `tag`, and
-        `access_password_hash` if the operation is successful, otherwise None.
+
+    :return: A dictionary containing the parsed components of the encrypted project
+        password (`ciphertext`, `salt`, `nonce`, `tag`) and the `access_password_hash`
+        if successful; `None` if the data is not found or improperly formatted.
     :rtype: dict | None
     """
     try:
