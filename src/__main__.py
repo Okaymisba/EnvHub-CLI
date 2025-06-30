@@ -7,6 +7,7 @@ from src import auth, reset
 from src import clone
 from src.add import add
 from src.decrypt import decrypt_runtime_and_run_command
+from src.pull import pull
 
 app = typer.Typer()
 
@@ -140,6 +141,20 @@ def add_env_var():
         typer.secho(f"Error adding environment variable: {e}", fg=typer.colors.RED)
 
     typer.secho("Environment variable added successfully", fg=typer.colors.GREEN)
+
+
+@app.command("pull")
+def pull_env_vars():
+    """
+    Pulls environment variables from a predefined source.
+
+    This function triggers the `pull` functionality that retrieves environment
+    variables from the designated source or service. It is typically used to
+    sync environment variables for the application configuration.
+
+    :return: None
+    """
+    pull()
 
 
 if __name__ == "__main__":
