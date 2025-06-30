@@ -13,16 +13,16 @@ from src.utils.crypto import CryptoUtils
 
 def decrypt_runtime_and_run_command(command: str) -> None:
     """
-    Decrypts runtime environment variables and executes a command.
+    Decrypts runtime environment variables and executes a provided command.
 
-    This function retrieves environment variables linked to a specific project,
-    decrypts them using cryptographic utilities, updates the current process's
-    environment with the decrypted variables, and executes a shell command. If
-    any error occurs during the decryption or command execution process, it
-    provides appropriate feedback to the user and exits with an error code.
+    This function reads a configuration file, decrypts environment variables using
+    the provided credentials, and updates the current runtime environment with the
+    decrypted values. After configuring the environment, it executes the given
+    command using the updated environment variables. If an error occurs during
+    decryption or command execution, appropriate messages are displayed to the user.
 
-    :param command: The command to be executed after setting up decrypted
-        environment variables
+    :param command: The command string to be executed. It should be provided as a single
+        string.
     :type command: str
     :return: None
     """
@@ -41,7 +41,6 @@ def decrypt_runtime_and_run_command(command: str) -> None:
         typer.secho("Invalid .envhub config file.", fg="red")
         exit(1)
 
-    # Get and decrypt environment variables
     crypto_utils = CryptoUtils()
     envs = get_current_env_variables(client, json_config.get("project_id"))
     decrypted_envs = {}
@@ -51,15 +50,28 @@ def decrypt_runtime_and_run_command(command: str) -> None:
 
     for env in envs:
         try:
-            key = env.get("key")
+            key = env.get("env_name")
             if not key:
                 continue
 
             if role == "owner":
-                decrypted_value = crypto_utils.decrypt(env, password)
+                decrypted_value = crypto_utils.decrypt(
+                    {
+                        "ciphertext": env.get("env_value_encrypted"),
+                        "salt": env.get("salt"),
+                        "nonce": env.get("nonce"),
+                        "tag": env.get("tag")
+                    },
+                    password
+                )
             elif role == "member":
                 decrypted_value = crypto_utils.decrypt(
-                    env,
+                    {
+                        "ciphertext": env.get("env_value_encrypted"),
+                        "salt": env.get("salt"),
+                        "nonce": env.get("nonce"),
+                        "tag": env.get("tag")
+                    },
                     crypto_utils.decrypt(
                         json_config.get("encrypted_data"),
                         password
