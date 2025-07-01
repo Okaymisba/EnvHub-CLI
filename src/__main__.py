@@ -8,6 +8,12 @@ from src import clone
 from src.add import add
 from src.decrypt import decrypt_runtime_and_run_command
 from src.pull import pull
+from src.services.getCurrentEnvVariables import get_current_env_variables
+from src.utils.crypto import CryptoUtils
+from src.utils.getEncryptedPasswordData import get_encrypted_password_data
+from src.utils.getPassword import get_password
+from src.utils.getProjectId import get_project_id
+from src.utils.getRole import get_role
 
 app = typer.Typer()
 
@@ -155,6 +161,55 @@ def pull_env_vars():
     :return: None
     """
     pull()
+
+
+@app.command("list")
+def list_env_vars():
+    """
+    List and decrypt environment variables associated with the current project.
+
+    This function interacts with encrypted environment variables stored in the project and decrypts
+    them based on the user's role: `owner`, `user`, or `admin`. It utilizes cryptographic utilities
+    to access and decrypt the respective variables. The decrypted environment variables are then
+    printed to the terminal in the format `ENV_NAME=decrypted_value`.
+
+    :returns: None
+
+    """
+    crypto_utils = CryptoUtils()
+    client = auth.get_authenticated_client()
+    envs = get_current_env_variables(client, get_project_id())
+    role = get_role()
+    if role == "owner":
+        for env in envs:
+            typer.echo(f"{env['env_name']}={
+            crypto_utils.decrypt({
+                "ciphertext": env['env_value_encrypted'],
+                "nonce": env['nonce'],
+                "tag": env['tag'],
+                "salt": env['salt']
+            },
+                get_password()
+            )
+            }"
+                       )
+
+    elif role == "user" or role == "admin":
+        for env in envs:
+            typer.echo(f"{env['env_name']}={
+            crypto_utils.decrypt({
+                "ciphertext": env['env_value_encrypted'],
+                "nonce": env['nonce'],
+                "tag": env['tag'],
+                "salt": env['salt']
+            },
+                crypto_utils.decrypt(
+                    get_encrypted_password_data(),
+                    get_password()
+                )
+            )
+            }"
+                       )
 
 
 if __name__ == "__main__":
