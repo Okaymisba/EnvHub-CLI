@@ -6,20 +6,23 @@ from src.utils.crypto import CryptoUtils
 
 async def create_env_version(project_id: str, env_entries: list, password: str, supabase) -> dict:
     """
-    This function creates a new environment version for a given project in a Supabase database.
-    It retrieves existing environment variables, calculates the next version number, encrypts the
-    associated data, and stores the information in the database. Additionally, it handles encryption
-    and decryption of variable values and validates input data.
+    Creates a new environment version for the given project. This involves fetching existing
+    environment variables, determining the next version number, encrypting metadata and
+    variables, and inserting them into the appropriate database tables.
 
-    :param project_id: The ID of the project for which the environment version is to be created
+    :param project_id: The unique identifier of the project for which the environment version
+        is being created.
     :type project_id: str
-    :param env_entries: A list containing new environment variable name-value pairs to be added
+    :param env_entries: A list containing a new environment variable entry, where the first
+        element is the variable name and the second element is its value.
     :type env_entries: list
-    :param password: The password used for encrypting and decrypting sensitive data
+    :param password: The encryption password used to encrypt and decrypt environment variables.
     :type password: str
-    :param supabase: An instance of the Supabase client used for database operations
-    :return: A dictionary containing details of the newly created environment version
+    :param supabase: The Supabase client instance used for database operations.
+    :return: A dictionary representing the newly created version's metadata.
     :rtype: dict
+    :raises SystemExit: If an error occurs during decryption or any other process, the
+        application exits with an error message.
     """
     try:
         existing_variables = get_current_env_variables(supabase, project_id)
@@ -42,7 +45,7 @@ async def create_env_version(project_id: str, env_entries: list, password: str, 
             .insert({
             'project_id': project_id,
             'version_number': next_version_number,
-            'variable_count': len(existing_variables) + len(env_entries),
+            'variable_count': len(existing_variables) + 1,
             'salt': dummy_encryption['salt'],
             'nonce': dummy_encryption['nonce'],
             'tag': dummy_encryption['tag']
