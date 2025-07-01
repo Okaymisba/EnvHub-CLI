@@ -13,18 +13,29 @@ from src.utils.crypto import CryptoUtils
 
 def decrypt_runtime_and_run_command(command: str) -> None:
     """
-    Decrypts runtime environment variables and executes a provided command.
+    Decrypts runtime environment variables and executes a given command.
 
-    This function reads a configuration file, decrypts environment variables using
-    the provided credentials, and updates the current runtime environment with the
-    decrypted values. After configuring the environment, it executes the given
-    command using the updated environment variables. If an error occurs during
-    decryption or command execution, appropriate messages are displayed to the user.
+    This function performs multiple tasks:
+    1. Ensures the presence of a `.envhub` configuration file in the current directory.
+    2. Reads and validates the `.envhub` configuration file as JSON.
+    3. Retrieves the current environment variables from an authenticated client
+       and decrypts them based on the user's role and credentials.
+    4. Updates the operating system's environment variables with the decrypted
+       values.
+    5. Executes the specified shell command using the updated environment
+       variables.
 
-    :param command: The command string to be executed. It should be provided as a single
-        string.
+    If any step fails, the function provides informative error messages to assist
+    the user in troubleshooting.
+
+    :param command: The shell command to execute after decrypting environment
+                    variables.
     :type command: str
     :return: None
+
+    :raises Exception: Any error encountered during decryption or command
+                       execution is logged, and relevant error details are
+                       displayed to the user.
     """
     client = get_authenticated_client()
     envhub_config_file = pathlib.Path.cwd() / ".envhub"
@@ -64,7 +75,7 @@ def decrypt_runtime_and_run_command(command: str) -> None:
                     },
                     password
                 )
-            elif role == "member":
+            elif role == "user" or role == "admin":
                 decrypted_value = crypto_utils.decrypt(
                     {
                         "ciphertext": env.get("env_value_encrypted"),

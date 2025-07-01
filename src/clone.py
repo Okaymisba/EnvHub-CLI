@@ -81,7 +81,7 @@ async def clone(project_name: str):
             "password_hash": password_hash
         })
 
-    elif role == "admin" or role == "member":
+    elif role == "admin" or role == "user":
         encrypted_password_data = get_encrypted_project_password(client, project_id.data[0]["id"],
                                                                  project_id.data[0]["user_id"])
         if not encrypted_password_data:
