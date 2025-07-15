@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "envhub-cli"
+version = "0.1.0"
+description = "A CLI tool for managing environment variables with encryption and role-based access control"
+authors = [
+    { name = "Misbah Sarfaraz", email = "msbahsarfaraz@gmail.com" }
+]
+license = { text = "Mozilla Public License 2.0" }
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["cli", "environment-variables", "encryption", "supabase", "envhub", "sharing env"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
+]
+dependencies = [
+    "typer[all] ~= 0.16.0",
+    "supabase ~= 2.15.3",
+    "python-dotenv ~= 1.1.0",
+    "cryptography ~= 45.0.4"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Okaymisba/EnvHub-CLI"
+"Bug Tracker" = "https://github.com/Okaymisba/EnvHub-CLI/issues"
+
+[project.scripts]
+envhub = "envhub.__main__:app"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["envhub"]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest",
+    "coverage",
+    "black",
+    "isort",
+    "mypy"
+]
+
+[tool.hatch.envs.test]
+description = "Run tests"
+dependencies = ["pytest"]
+
+[tool.hatch.envs.lint]
+description = "Run linters"
+dependencies = ["black", "isort", "mypy"]
+
+[tool.hatch.envs.format]
+description = "Format code"
+dependencies = ["black", "isort"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.8"
+ignore_missing_imports = true
+check_untyped_defs = true
