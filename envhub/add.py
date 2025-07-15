@@ -1,9 +1,9 @@
 import typer
 
-from src import auth
-from src.services.createEnvVersion import create_env_version
-from src.services.getEncryptedProjectPassword import get_encrypted_project_password
-from src.utils.crypto import CryptoUtils
+from envhub import auth
+from envhub.services.createEnvVersion import create_env_version
+from envhub.services.getEncryptedProjectPassword import get_encrypted_project_password
+from envhub.utils.crypto import CryptoUtils
 
 
 async def add(entries: list, password: str, current_user_role: str, project_id: str):

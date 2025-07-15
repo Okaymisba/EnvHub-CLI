@@ -3,17 +3,17 @@ import json
 
 import typer
 
-from src import auth, reset
-from src import clone
-from src.add import add
-from src.decrypt import decrypt_runtime_and_run_command
-from src.pull import pull
-from src.services.getCurrentEnvVariables import get_current_env_variables
-from src.utils.crypto import CryptoUtils
-from src.utils.getEncryptedPasswordData import get_encrypted_password_data
-from src.utils.getPassword import get_password
-from src.utils.getProjectId import get_project_id
-from src.utils.getRole import get_role
+from envhub import auth, reset
+from envhub import clone
+from envhub.add import add
+from envhub.decrypt import decrypt_runtime_and_run_command
+from envhub.pull import pull
+from envhub.services.getCurrentEnvVariables import get_current_env_variables
+from envhub.utils.crypto import CryptoUtils
+from envhub.utils.getEncryptedPasswordData import get_encrypted_password_data
+from envhub.utils.getPassword import get_password
+from envhub.utils.getProjectId import get_project_id
+from envhub.utils.getRole import get_role
 
 app = typer.Typer()
 

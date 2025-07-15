@@ -3,7 +3,7 @@ from typing import List
 import supabase
 import typer
 
-from src.services.getEnvVariables import get_env_variables
+from envhub.services.getEnvVariables import get_env_variables
 
 
 def get_current_env_variables(client: supabase.Client, project_id: str) -> List[dict]:

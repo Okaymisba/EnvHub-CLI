@@ -6,9 +6,9 @@ import subprocess
 
 import typer
 
-from src.auth import get_authenticated_client
-from src.services.getCurrentEnvVariables import get_current_env_variables
-from src.utils.crypto import CryptoUtils
+from envhub.auth import get_authenticated_client
+from envhub.services.getCurrentEnvVariables import get_current_env_variables
+from envhub.utils.crypto import CryptoUtils
 
 
 def decrypt_runtime_and_run_command(command: str) -> None:

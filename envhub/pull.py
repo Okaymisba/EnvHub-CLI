@@ -3,8 +3,8 @@ import pathlib
 
 import typer
 
-from src import auth
-from src.services.getCurrentEnvVariables import get_current_env_variables
+from envhub import auth
+from envhub.services.getCurrentEnvVariables import get_current_env_variables
 
 
 def pull():

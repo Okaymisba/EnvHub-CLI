@@ -1,7 +1,7 @@
 import typer
 
-from src.services.getCurrentEnvVariables import get_current_env_variables
-from src.utils.crypto import CryptoUtils
+from envhub.services.getCurrentEnvVariables import get_current_env_variables
+from envhub.utils.crypto import CryptoUtils
 
 
 async def create_env_version(project_id: str, env_entries: list, password: str, supabase) -> dict:

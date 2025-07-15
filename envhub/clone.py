@@ -4,12 +4,12 @@ import pathlib
 import typer
 from typer import style
 
-from src.auth import get_authenticated_client
-from src.services.getCurrentEnvVariables import get_current_env_variables
-from src.services.getCurrentUserRole import get_current_user_role
-from src.services.getEncryptedProjectPassword import get_encrypted_project_password
-from src.services.getProjectPassword import get_project_password
-from src.utils.passwordUtils import PasswordUtils
+from envhub.auth import get_authenticated_client
+from envhub.services.getCurrentEnvVariables import get_current_env_variables
+from envhub.services.getCurrentUserRole import get_current_user_role
+from envhub.services.getEncryptedProjectPassword import get_encrypted_project_password
+from envhub.services.getProjectPassword import get_project_password
+from envhub.utils.passwordUtils import PasswordUtils
 
 
 async def clone(project_name: str):
