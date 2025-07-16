@@ -2,3 +2,5 @@ typer[all]~=0.16.0
 supabase~=2.15.3
 python-dotenv~=1.1.0
 cryptography~=45.0.4
+requests~=2.32.4
+packaging~=25.0

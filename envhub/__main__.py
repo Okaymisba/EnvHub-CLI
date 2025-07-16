@@ -3,9 +3,12 @@
 # If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import asyncio
+import importlib.metadata
 import json
 
+import requests
 import typer
+from packaging import version
 
 from envhub import auth, reset
 from envhub import clone
@@ -19,7 +22,49 @@ from envhub.utils.getPassword import get_password
 from envhub.utils.getProjectId import get_project_id
 from envhub.utils.getRole import get_role
 
+__version__ = importlib.metadata.version("envhub-cli")
+
 app = typer.Typer()
+
+
+def check_for_updates():
+    """Check if a newer version is available on PyPI."""
+    try:
+        current_version = importlib.metadata.version("envhub-cli")
+        response = requests.get("https://pypi.org/pypi/envhub-cli/json", timeout=3)
+        latest_version = response.json()["info"]["version"]
+
+        if version.parse(latest_version) > version.parse(current_version):
+            typer.secho(
+                f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
+                f"\n   Upgrade with: pip install --upgrade envhub-cli\n",
+                fg=typer.colors.YELLOW,
+            )
+    except Exception:
+        pass
+
+
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"EnvHub CLI v{__version__}")
+        check_for_updates()
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+        version: bool = typer.Option(
+            None,
+            "--version",
+            "-v",
+            help="Show the version and exit.",
+            callback=version_callback,
+            is_eager=True,
+        )
+):
+    """EnvHub CLI - Manage your environment variables securely."""
+    check_for_updates()
+    pass
 
 
 @app.command("login")
