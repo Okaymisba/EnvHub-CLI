@@ -81,7 +81,7 @@ envhub pull
 
 ## Documentation
 
-For detailed documentation, please visit our documentation website.
+For detailed documentation, please visit our [Documentation Website](https://envhub.net/docs).
 
 ## Contributing
 
