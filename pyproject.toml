@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "envhub-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "A CLI tool for managing environment variables with encryption and role-based access control"
 authors = [
     { name = "Misbah Sarfaraz", email = "msbahsarfaraz@gmail.com" }
