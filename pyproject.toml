@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "envhub-cli"
-version = "0.2.1"
+version = "0.2.2"
 description = "A CLI tool for managing environment variables with encryption and role-based access control"
 authors = [
     { name = "Misbah Sarfaraz", email = "msbahsarfaraz@gmail.com" }
@@ -28,7 +28,9 @@ dependencies = [
     "typer[all] ~= 0.16.0",
     "supabase ~= 2.15.3",
     "python-dotenv ~= 1.1.0",
-    "cryptography ~= 45.0.4"
+    "cryptography ~= 45.0.4",
+    "requests ~= 2.32.4",
+    "packaging ~= 25.0"
 ]
 
 [project.urls]
