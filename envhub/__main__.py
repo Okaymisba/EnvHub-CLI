@@ -37,7 +37,7 @@ def check_for_updates():
         if version.parse(latest_version) > version.parse(current_version):
             typer.secho(
                 f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
-                f"\n   Upgrade with: pip install --upgrade envhub-cli\n",
+                f"\n   Upgrade with: pip install --upgrade envhub-cli\n Or if using pipx: pipx upgrade envhub-cli",
                 fg=typer.colors.YELLOW,
             )
     except Exception:
@@ -84,6 +84,11 @@ def login():
         typer.echo("Use `logout` to log out")
         return
 
+    typer.secho("Note: If you signed up with Google, you'll need to set up a CLI password first. "
+              "To do this, go to EnvHub (https://envhub.net), click on your profile picture, "
+              "then select 'CLI Setup' from the dropdown menu.",
+              fg=typer.colors.YELLOW)
+    
     email = typer.prompt("Email")
     password = typer.prompt("Password", hide_input=True)
 
