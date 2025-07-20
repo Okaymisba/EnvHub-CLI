@@ -2,52 +2,55 @@
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 # If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import asyncio
-import importlib.metadata
-import json
-
-import requests
 import typer
-from packaging import version
 
-from envhub import auth, reset
-from envhub import clone
-from envhub.add import add
-from envhub.decrypt import decrypt_runtime_and_run_command
-from envhub.pull import pull
-from envhub.services.getCurrentEnvVariables import get_current_env_variables
-from envhub.utils.crypto import CryptoUtils
-from envhub.utils.getEncryptedPasswordData import get_encrypted_password_data
-from envhub.utils.getPassword import get_password
-from envhub.utils.getProjectId import get_project_id
-from envhub.utils.getRole import get_role
-
-__version__ = importlib.metadata.version("envhub-cli")
-
-app = typer.Typer()
+app = typer.Typer(help="EnvHub CLI - Manage your environment variables securely.")
 
 
-def check_for_updates():
-    """Check if a newer version is available on PyPI."""
-    try:
-        current_version = importlib.metadata.version("envhub-cli")
-        response = requests.get("https://pypi.org/pypi/envhub-cli/json", timeout=3)
-        latest_version = response.json()["info"]["version"]
+def check_for_updates_async():
+    """Check for updates in a non-blocking way."""
 
-        if version.parse(latest_version) > version.parse(current_version):
-            typer.secho(
-                f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
-                f"\n   Upgrade with: pip install --upgrade envhub-cli\n Or if using pipx: pipx upgrade envhub-cli",
-                fg=typer.colors.YELLOW,
-            )
-    except Exception:
-        pass
+    def _check():
+        try:
+            import requests
+            from packaging import version
+            import importlib.metadata
+
+            current_version = importlib.metadata.version("envhub-cli")
+            response = requests.get("https://pypi.org/pypi/envhub-cli/json", timeout=3)
+            latest_version = response.json()["info"]["version"]
+
+            if version.parse(latest_version) > version.parse(current_version):
+                typer.secho(
+                    f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
+                    f"\n   Upgrade with: pip install --upgrade envhub-cli\n   Or if using pipx: pipx upgrade envhub-cli",
+                    fg=typer.colors.YELLOW,
+                )
+        except Exception:
+            pass
+
+    # This will run the function _check in a separate thread so that the main thread can continue and won't result
+    # in a slow startup
+    import threading
+
+    thread = threading.Thread(target=_check, daemon=True)
+    thread.start()
 
 
 def version_callback(value: bool):
+    """
+    Handles the version callback, displaying the current version of the EnvHub CLI
+    and checking for updates if the value provided is true.
+
+    :param value: A boolean indicating whether to execute the version callback.
+    :return: None
+    """
     if value:
+        import importlib.metadata
+
+        __version__ = importlib.metadata.version("envhub-cli")
         typer.echo(f"EnvHub CLI v{__version__}")
-        check_for_updates()
+        check_for_updates_async()
         raise typer.Exit()
 
 
@@ -62,9 +65,19 @@ def main(
             is_eager=True,
         )
 ):
-    """EnvHub CLI - Manage your environment variables securely."""
-    check_for_updates()
-    pass
+    """
+    The main function serves as the entry point for the CLI application. It determines if the
+    version flag is provided by the user and displays the application version if requested.
+    If the version flag is not provided, the function triggers an asynchronous check for updates,
+    ensuring that update checks only occur during active CLI commands.
+
+    :param version: A boolean flag that, when set, triggers the display of the application
+        version and prevents further execution of the program logic.
+    :callback version: Calls the `version_callback` function to handle the version flag.
+    :return: None
+    """
+    if not version:
+        check_for_updates_async()
 
 
 @app.command("login")
@@ -82,16 +95,18 @@ def login():
 
     :raises typer.Abort: Raised if prompted inputs are interrupted.
     """
+    from envhub import auth
+
     if auth.is_logged_in():
         typer.secho(f"Already logged in as {auth.get_logged_in_email()}", fg=typer.colors.YELLOW)
         typer.echo("Use `logout` to log out")
         return
 
     typer.secho("Note: If you signed up with Google, you'll need to set up a CLI password first. "
-              "To do this, go to EnvHub (https://envhub.net), click on your profile picture, "
-              "then select 'CLI Setup' from the dropdown menu.",
-              fg=typer.colors.YELLOW)
-    
+                "To do this, go to EnvHub (https://envhub.net), click on your profile picture, "
+                "then select 'CLI Setup' from the dropdown menu.",
+                fg=typer.colors.YELLOW)
+
     email = typer.prompt("Email")
     password = typer.prompt("Password", hide_input=True)
 
@@ -112,6 +127,8 @@ def logout():
 
     :return: None
     """
+    from envhub import auth
+
     auth.logout()
     typer.secho("Logged out successfully", fg=typer.colors.GREEN)
 
@@ -125,6 +142,8 @@ def whoami():
 
     :return: None
     """
+    from envhub import auth
+
     email = auth.get_logged_in_email()
     if email:
         typer.secho(f"Logged in as: {email}", fg=typer.colors.CYAN)
@@ -145,6 +164,9 @@ def clone_project(project_name: str):
     :type project_name: str
     :return: None
     """
+    import asyncio
+    from envhub import clone
+
     asyncio.run(clone.clone(project_name))
 
 
@@ -159,6 +181,8 @@ def reset_folder():
 
     :return: None
     """
+    from envhub import reset
+
     reset.reset()
 
 
@@ -177,6 +201,8 @@ def decrypt_command(command: list[str] = typer.Argument(..., help="Command to ru
     :type command: list[str]
     :return: None
     """
+    from envhub.decrypt import decrypt_runtime_and_run_command
+
     command_str = " ".join(command)
     decrypt_runtime_and_run_command(command_str)
 
@@ -189,6 +215,10 @@ def add_env_var():
     and securely handles hiding the input for sensitive information. Leverages functionalities to
     interact with the system's `.envhub` file and performs asynchronous operations for communication.
     """
+    import json
+    import asyncio
+    from envhub.add import add
+
     env_name = typer.prompt("Enter the variable name")
     env_value = typer.prompt("Enter the variable value", hide_input=True)
     with open(".envhub", "r") as f:
@@ -217,6 +247,8 @@ def pull_env_vars():
 
     :return: None
     """
+    from envhub.pull import pull
+
     pull()
 
 
@@ -233,6 +265,14 @@ def list_env_vars():
     :returns: None
 
     """
+    from envhub.utils.getPassword import get_password
+    from envhub.utils.crypto import CryptoUtils
+    from envhub import auth
+    from envhub.services.getCurrentEnvVariables import get_current_env_variables
+    from envhub.utils.getProjectId import get_project_id
+    from envhub.utils.getRole import get_role
+    from envhub.utils.getEncryptedPasswordData import get_encrypted_password_data
+
     crypto_utils = CryptoUtils()
     client = auth.get_authenticated_client()
     envs = get_current_env_variables(client, get_project_id())

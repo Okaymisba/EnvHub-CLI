@@ -58,6 +58,7 @@ def decrypt_runtime_and_run_command(command: str) -> None:
 
     crypto_utils = CryptoUtils()
     envs = get_current_env_variables(client, json_config.get("project_id"))
+    typer.secho("Decrypting environment variables...", fg="cyan")
     decrypted_envs = {}
 
     role = json_config.get("role")
