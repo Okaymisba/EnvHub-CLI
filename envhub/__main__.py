@@ -70,14 +70,17 @@ def main(
 @app.command("login")
 def login():
     """
-    Logs into the application using provided email and password.
+    Logs the user into the system.
 
-    This function checks if the user is already logged in. If the user is already
-    logged in, a message is displayed, and the function exits. If the user is not
-    logged in, they will be prompted to provide their email and password. Successful
-    authentication results in a success message; otherwise, an error message is shown.
+    This function interacts with the authentication module to allow the user
+    to log in through the CLI. If the user is already logged in, this function
+    notifies them of their current status and provides guidance on how to log out.
+    When a non-logged-in user attempts to log in, they are prompted for their email
+    and password. If the credentials are valid, the login is completed
+    successfully, with appropriate feedback shown for success or failure. Special
+    instructions are presented for users who signed up using Google sign-in.
 
-    :return: None
+    :raises typer.Abort: Raised if prompted inputs are interrupted.
     """
     if auth.is_logged_in():
         typer.secho(f"Already logged in as {auth.get_logged_in_email()}", fg=typer.colors.YELLOW)
