@@ -86,8 +86,9 @@ async def clone(project_name: str):
         })
 
     elif role == "admin" or role == "user":
+        user = client.auth.get_user()
         encrypted_password_data = get_encrypted_project_password(client, project_id.data[0]["id"],
-                                                                 project_id.data[0]["user_id"])
+                                                                 user.user.id)
         if not encrypted_password_data:
             typer.secho("Failed to fetch project password", fg=typer.colors.RED)
             exit(1)
@@ -99,7 +100,7 @@ async def clone(project_name: str):
             typer.secho("Password is required", fg=typer.colors.RED)
             exit(1)
 
-        if encrypted_password_data["access_password_hash"] != password_utils.hash_password(password):
+        if not password_utils.verify_password(password, encrypted_password_data["access_password_hash"]):
             typer.secho("Incorrect password", fg=typer.colors.RED)
             exit(1)
 
