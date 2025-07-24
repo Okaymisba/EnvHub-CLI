@@ -1,7 +1,3 @@
-# Copyright (c) 2025 Misbah Sarfaraz msbahsarfaraz@gmail.com
-# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-# If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 import json
 import os
 import pathlib
@@ -15,89 +11,110 @@ from envhub.utils.crypto import CryptoUtils
 
 def decrypt_runtime_and_run_command(command: str) -> None:
     """
-    Decrypts runtime environment variables and executes a given command.
+    Decrypts runtime configurations and executes a specified shell command.
 
-    This function performs multiple tasks:
-    1. Ensures the presence of a `.envhub` configuration file in the current directory.
-    2. Reads and validates the `.envhub` configuration file as JSON.
-    3. Retrieves the current environment variables from an authenticated client
-       and decrypts them based on the user's role and credentials.
-    4. Updates the operating system's environment variables with the decrypted
-       values.
-    5. Executes the specified shell command using the updated environment
-       variables.
+    This function performs environment variable decryption based on either a
+    `.envhub` configuration file or the `ENVHUB_PASSWORD` environment variable.
+    It securely decrypts the `.env` file and updates the runtime environment
+    before running the given shell command. The function exits with an appropriate
+    status code if an issue arises, such as missing configurations, decryption
+    failures, or command execution errors.
 
-    If any step fails, the function provides informative error messages to assist
-    the user in troubleshooting.
-
-    :param command: The shell command to execute after decrypting environment
-                    variables.
+    :param command: The shell command to execute after decrypting the environment.
     :type command: str
     :return: None
-
-    :raises Exception: Any error encountered during decryption or command
-                       execution is logged, and relevant error details are
-                       displayed to the user.
     """
-    envhub_config_file = pathlib.Path.cwd() / ".envhub"
     env_file = pathlib.Path.cwd() / ".env"
+    envhub_config_file = pathlib.Path.cwd() / ".envhub"
 
-    if not envhub_config_file.exists():
-        typer.secho("No config file found for this folder.", fg="red")
-        typer.secho("Please run 'envhub clone' first.", fg="yellow")
-        exit(1)
+    def execute_command():
+        """
+        Decrypts runtime files and executes a provided shell command.
 
-    try:
-        with open(envhub_config_file, "r") as f:
-            json_config = json.load(f)
-    except json.JSONDecodeError:
-        typer.secho("Invalid .envhub config file.", fg="red")
-        exit(1)
+        The function is designed to handle the decryption of runtime-related files
+        before executing a given shell command in a subprocess. If the command
+        is invalid or encounters execution errors, it provides appropriate feedback
+        and exit codes. Errors during command execution or missing commands
+        are logged as warnings or errors. The function ensures that the execution
+        environment is prepared correctly by using the current process environment.
 
-    crypto_utils = CryptoUtils()
-    typer.secho("Decrypting environment variables...", fg="cyan")
-    decrypted_envs = {}
-
-    role = json_config.get("role")
-    password = json_config.get("password")
-
-    if role == "owner":
-        decrypted_env = crypto_utils.decrypt_env_file(
-            str(env_file),
-            password
-        )
-    elif role == "user" or role == "admin":
-        decrypted_env = crypto_utils.decrypt_env_file(
-            str(env_file),
-            crypto_utils.decrypt(
-                json_config.get("encrypted_data"),
-                password
-            )
-        )
-    else:
-        typer.secho(f"Unknown role: {role}", fg="red")
-        exit(1)
-
-    os.environ.update(decrypted_envs)
-
-    try:
+        :return: None
+        """
         if not command:
             typer.secho("No command provided to execute.", fg="yellow")
             return
 
-        command_parts = shlex.split(command)
+        try:
+            if not command:
+                typer.secho("No command provided to execute.", fg="yellow")
+                return
 
-        process = subprocess.Popen(
-            command_parts,
-            env=os.environ,
-            shell=False
+            command_parts = shlex.split(command)
+
+            process = subprocess.Popen(
+                command_parts,
+                env=os.environ,
+                shell=False
+            )
+            process.communicate()
+
+            if process.returncode != 0:
+                typer.secho(f"Command failed with exit code {process.returncode}", fg="red")
+                exit(process.returncode)
+
+        except Exception as e:
+            typer.secho(f"Error executing command: {str(e)}", fg="red")
+            exit(1)
+
+    if envhub_config_file.exists():
+        try:
+            with open(envhub_config_file, "r") as f:
+                json_config = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            typer.secho(f"Error reading .envhub config file: {str(e)}", fg="red")
+            exit(1)
+
+        crypto_utils = CryptoUtils()
+        role = json_config.get("role")
+        password = json_config.get("password")
+
+        if not password:
+            typer.secho("No password found in .envhub config", fg="red")
+            exit(1)
+
+        try:
+            if role == "owner":
+                decrypted_env = crypto_utils.decrypt_env_file(str(env_file), password)
+            elif role in ("user", "admin"):
+                decrypted_env = crypto_utils.decrypt_env_file(
+                    str(env_file),
+                    crypto_utils.decrypt(json_config.get("encrypted_data"), password)
+                )
+            else:
+                typer.secho(f"Unknown role: {role}", fg="red")
+                exit(1)
+
+            os.environ.update(decrypted_env)
+            execute_command()
+
+        except Exception as e:
+            typer.secho(f"Error decrypting environment: {str(e)}", fg="red")
+            exit(1)
+
+
+    elif password := os.getenv("ENVHUB_PASSWORD"):
+        try:
+            crypto_utils = CryptoUtils()
+            decrypted_env = crypto_utils.decrypt_env_file(str(env_file), password)
+            os.environ.update(decrypted_env)
+            execute_command()
+        except Exception as e:
+            typer.secho(f"Error decrypting with ENVHUB_PASSWORD: {str(e)}", fg="red")
+            exit(1)
+
+    else:
+        typer.secho(
+            "No valid configuration found. Either create a .envhub config file by running 'envhub clone <project_name>' or set ENVHUB_PASSWORD environment variable.",
+            fg="red"
         )
-        process.communicate()
-
-        if process.returncode != 0:
-            typer.secho(f"Command failed with exit code {process.returncode}", fg="red")
-            exit(process.returncode)
-
-    except Exception as e:
-        typer.secho(f"Error executing command: {str(e)}", fg="red")
         exit(1)

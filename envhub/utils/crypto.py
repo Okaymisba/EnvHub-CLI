@@ -119,55 +119,65 @@ class CryptoUtils:
     @staticmethod
     def decrypt_env_file(env_file_path: str, password: str) -> dict:
         """
-        Decrypts a given .env file, extracts environment variables, and decrypts values
-        that are in an encrypted format. The method parses the file, identifies encrypted
-        entries, and uses a provided password to decrypt them. Non-encrypted values or
-        entries with invalid formats are left unchanged. Errors during the decryption
-        or reading process are surfaced as needed.
+        Decrypts a given .env file and returns decrypted environment variables.
+        Fails immediately if any decryption fails.
 
         :param env_file_path: Path to the .env file to be processed
-        :type env_file_path: str
-        :param password: Password used for decrypting encrypted values in the .env file
-        :type password: str
-        :return: A dictionary containing environment variable key-value pairs where
-            encrypted values have been decrypted if possible
-        :rtype: dict
+        :param password: Password used for decryption
+        :return: Dictionary of decrypted environment variables
+        :raises: ValueError if decryption fails for any variable
+        :raises: IOError if file cannot be read
         """
+        if not os.path.exists(env_file_path):
+            raise FileNotFoundError(f"Environment file not found: {env_file_path}")
+
+        if not password:
+            raise ValueError("No password provided for decryption")
+
         decrypted_envs = {}
 
         try:
             with open(env_file_path, 'r') as f:
-                for line in f:
+                for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line or line.startswith('#'):
                         continue
 
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        key = key.strip()
-                        value = value.strip()
+                    if '=' not in line:
+                        raise ValueError(f"Invalid format in line {line_num}: Missing '=' in line")
 
-                        if ':' in value:
-                            parts = value.split(':')
-                            if len(parts) == 4:
-                                try:
-                                    encrypted_data = {
-                                        "ciphertext": parts[0],
-                                        "salt": parts[1],
-                                        "nonce": parts[2],
-                                        "tag": parts[3]
-                                    }
-                                    decrypted_value = CryptoUtils.decrypt(encrypted_data, password)
-                                    decrypted_envs[key] = decrypted_value
-                                except Exception as e:
-                                    print(f"Error decrypting {key}: {str(e)}")
-                                    decrypted_envs[key] = value
-                            else:
-                                decrypted_envs[key] = value
-                        else:
-                            decrypted_envs[key] = value
-        except Exception as e:
-            print(f"Error reading .env file: {str(e)}")
-            raise
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+
+                    if not key:
+                        raise ValueError(f"Empty key in line {line_num}")
+
+                    if ':' in value:
+                        parts = value.split(':')
+                        if len(parts) != 4:
+                            raise ValueError(
+                                f"Invalid encrypted value format for {key}. "
+                            )
+
+                        try:
+                            encrypted_data = {
+                                "ciphertext": parts[0],
+                                "salt": parts[1],
+                                "nonce": parts[2],
+                                "tag": parts[3]
+                            }
+                            decrypted_envs[key] = CryptoUtils.decrypt(encrypted_data, password)
+                        except Exception as e:
+                            raise ValueError(
+                                f"Failed to decrypt environment variable '{key}': {str(e)}"
+                            ) from e
+                    else:
+                        raise ValueError(
+                            f"Invalid encrypted value format for {key}. "
+                        )
+
+        except IOError as e:
+            raise IOError(f"Failed to read environment file '{env_file_path}': {str(e)}") from e
 
         return decrypted_envs
