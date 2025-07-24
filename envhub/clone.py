@@ -129,7 +129,7 @@ async def clone(project_name: str):
     dot_env_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dot_env_file, "w") as f:
         for env in envs:
-            f.write(f"{env['env_name']}={env['env_value_encrypted']}\n")
+            f.write(f"{env['env_name']}={env['env_value_encrypted']}:{env['salt']}:{env['nonce']}:{env['tag']}\n")
 
     gitignore_file = pathlib.Path.cwd() / ".gitignore"
     gitignore_file.parent.mkdir(parents=True, exist_ok=True)

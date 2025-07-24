@@ -10,8 +10,6 @@ import subprocess
 
 import typer
 
-from envhub.auth import get_authenticated_client
-from envhub.services.getCurrentEnvVariables import get_current_env_variables
 from envhub.utils.crypto import CryptoUtils
 
 
@@ -41,8 +39,8 @@ def decrypt_runtime_and_run_command(command: str) -> None:
                        execution is logged, and relevant error details are
                        displayed to the user.
     """
-    client = get_authenticated_client()
     envhub_config_file = pathlib.Path.cwd() / ".envhub"
+    env_file = pathlib.Path.cwd() / ".env"
 
     if not envhub_config_file.exists():
         typer.secho("No config file found for this folder.", fg="red")
@@ -57,51 +55,28 @@ def decrypt_runtime_and_run_command(command: str) -> None:
         exit(1)
 
     crypto_utils = CryptoUtils()
-    envs = get_current_env_variables(client, json_config.get("project_id"))
     typer.secho("Decrypting environment variables...", fg="cyan")
     decrypted_envs = {}
 
     role = json_config.get("role")
     password = json_config.get("password")
 
-    for env in envs:
-        try:
-            key = env.get("env_name")
-            if not key:
-                continue
-
-            if role == "owner":
-                decrypted_value = crypto_utils.decrypt(
-                    {
-                        "ciphertext": env.get("env_value_encrypted"),
-                        "salt": env.get("salt"),
-                        "nonce": env.get("nonce"),
-                        "tag": env.get("tag")
-                    },
-                    password
-                )
-            elif role == "user" or role == "admin":
-                decrypted_value = crypto_utils.decrypt(
-                    {
-                        "ciphertext": env.get("env_value_encrypted"),
-                        "salt": env.get("salt"),
-                        "nonce": env.get("nonce"),
-                        "tag": env.get("tag")
-                    },
-                    crypto_utils.decrypt(
-                        json_config.get("encrypted_data"),
-                        password
-                    )
-                )
-            else:
-                typer.secho(f"Unknown role: {role}", fg="red")
-                exit(1)
-
-            decrypted_envs[key] = decrypted_value
-
-        except Exception as e:
-            typer.secho(f"Error decrypting variable: {str(e)}", fg="red")
-            continue
+    if role == "owner":
+        decrypted_env = crypto_utils.decrypt_env_file(
+            str(env_file),
+            password
+        )
+    elif role == "user" or role == "admin":
+        decrypted_env = crypto_utils.decrypt_env_file(
+            str(env_file),
+            crypto_utils.decrypt(
+                json_config.get("encrypted_data"),
+                password
+            )
+        )
+    else:
+        typer.secho(f"Unknown role: {role}", fg="red")
+        exit(1)
 
     os.environ.update(decrypted_envs)
 

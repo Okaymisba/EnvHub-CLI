@@ -45,6 +45,6 @@ def pull():
     dot_env_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dot_env_file, "w") as f:
         for env in current_env_vars:
-            f.write(f"{env['env_name']}={env['env_value_encrypted']}\n")
+            f.write(f"{env['env_name']}={env['env_value_encrypted']}:{env['salt']}:{env['nonce']}:{env['tag']}\n")
 
     typer.secho("Changes pulled successfully.", fg=typer.colors.GREEN)
