@@ -255,58 +255,60 @@ def pull_env_vars():
 @app.command("list")
 def list_env_vars():
     """
-    List and decrypt environment variables associated with the current project.
+    Lists environment variables stored in the `.env` file after decrypting it using the
+    `.envhub` configuration file. The decryption process depends on the `role` specified
+    within the `.envhub` file, which determines how the decryption keys are handled.
 
-    This function interacts with encrypted environment variables stored in the project and decrypts
-    them based on the user's role: `owner`, `user`, or `admin`. It utilizes cryptographic utilities
-    to access and decrypt the respective variables. The decrypted environment variables are then
-    printed to the terminal in the format `ENV_NAME=decrypted_value`.
+    If the `.envhub` configuration file does not exist or is invalid, an appropriate
+    error message will be displayed. The method exits with an error code in case of any
+    failures.
 
-    :returns: None
+    :param: None
 
+    :raises json.JSONDecodeError: If the `.envhub` configuration file contains invalid JSON data.
+    :raises Exception: For any other errors encountered during the reading, decryption, or
+        listing process, a general exception is raised, and an error message is displayed.
+
+    :return: None
     """
-    from envhub.utils.getPassword import get_password
+    import pathlib
+    import json
     from envhub.utils.crypto import CryptoUtils
-    from envhub import auth
-    from envhub.services.getCurrentEnvVariables import get_current_env_variables
-    from envhub.utils.getProjectId import get_project_id
-    from envhub.utils.getRole import get_role
-    from envhub.utils.getEncryptedPasswordData import get_encrypted_password_data
 
-    crypto_utils = CryptoUtils()
-    client = auth.get_authenticated_client()
-    envs = get_current_env_variables(client, get_project_id())
-    role = get_role()
-    if role == "owner":
-        for env in envs:
-            typer.echo(f"{env['env_name']}={
-            crypto_utils.decrypt({
-                "ciphertext": env['env_value_encrypted'],
-                "nonce": env['nonce'],
-                "tag": env['tag'],
-                "salt": env['salt']
-            },
-                get_password()
-            )
-            }"
-                       )
+    env_file = pathlib.Path.cwd() / ".env"
+    envhub_config_file = pathlib.Path.cwd() / ".envhub"
 
-    elif role == "user" or role == "admin":
-        for env in envs:
-            typer.echo(f"{env['env_name']}={
-            crypto_utils.decrypt({
-                "ciphertext": env['env_value_encrypted'],
-                "nonce": env['nonce'],
-                "tag": env['tag'],
-                "salt": env['salt']
-            },
-                crypto_utils.decrypt(
-                    get_encrypted_password_data(),
-                    get_password()
+    if not envhub_config_file.exists():
+        typer.secho("No config file found for this folder.", fg=typer.colors.RED)
+        exit(1)
+
+    try:
+        with open(envhub_config_file, "r") as f:
+            config_data = json.load(f)
+            password = config_data.get("password")
+            role = config_data.get("role")
+            crypto_utils = CryptoUtils()
+
+            if role == "owner":
+                decrypted_env = crypto_utils.decrypt_env_file(str(env_file), password)
+            elif role in ("user", "admin"):
+                decrypted_env = crypto_utils.decrypt_env_file(
+                    str(env_file),
+                    crypto_utils.decrypt(config_data.get("encrypted_data"), password)
                 )
-            )
-            }"
-                       )
+            else:
+                typer.secho(f"Unknown role: {role}", fg="red")
+                exit(1)
+
+            for key, value in decrypted_env.items():
+                typer.echo(f"{key}={value}")
+
+    except json.JSONDecodeError:
+        typer.secho("Invalid .envhub config file.", fg=typer.colors.RED)
+        exit(1)
+    except Exception as e:
+        typer.secho(f"Error listing environment variables: {str(e)}", fg=typer.colors.RED)
+        exit(1)
 
 
 @app.command("setup-production")
