@@ -311,12 +311,5 @@ def list_env_vars():
         exit(1)
 
 
-@app.command("setup-production")
-def setup_env_for_production():
-    from envhub.setup_production import setup_production
-
-    setup_production()
-
-
 if __name__ == "__main__":
     app()
