@@ -8,13 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- Added support for environment variable injection in production environments
+- Enhanced compatibility with various cloud hosting platforms
 
 ### Changed
-- Nothing yet
-
-### Fixed
-- Nothing yet
+- Changed the mechanism for decrypting environment variables
+    - Before this release, the decryption mechanism involved retrieving the encrypted data form cloud. 
+    - Now, the decryption mechanism is based on the content of the .env file.
+    - So, the user will have to pull from the project first before using the decrypt or any other command
 
 ## [0.3.6] - 2025-07-22
 
