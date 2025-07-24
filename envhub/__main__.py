@@ -39,19 +39,31 @@ def check_for_updates_async():
 
 def version_callback(value: bool):
     """
-    Handles the version callback, displaying the current version of the EnvHub CLI
-    and checking for updates if the value provided is true.
+    Determines and displays the version of the EnvHub CLI tool when the input
+    value is True. If an error occurs during version retrieval, it gracefully
+    handles specific exceptions or defaults to a generic message. Exits the
+    process after displaying the version if appropriate.
 
-    :param value: A boolean indicating whether to execute the version callback.
-    :return: None
+    :param value: The boolean flag to trigger the version display logic. If True,
+        the function attempts to retrieve and print the version of the EnvHub CLI.
+    :return: The input value, maintaining the original state.
+
+    :raises typer.Exit: Exits the process after displaying the version information
+        when the given value is True.
     """
-    if value:
-        import importlib.metadata
+    import importlib.metadata
 
-        __version__ = importlib.metadata.version("envhub-cli")
-        typer.echo(f"EnvHub CLI v{__version__}")
-        check_for_updates_async()
+    if value:
+        try:
+            __version__ = importlib.metadata.version("envhub-cli")
+            typer.echo(f"EnvHub CLI v{__version__}")
+            check_for_updates_async()
+        except ImportError:
+            typer.echo("EnvHub CLI")
+        except Exception:
+            typer.echo("EnvHub CLI (version unknown)")
         raise typer.Exit()
+    return value
 
 
 @app.callback()
