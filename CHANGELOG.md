@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [//]: # (## [Unreleased])
 
+## [0.4.2] - 2023-07-25
+
+### Fixed
+- Fixed version update notification not showing when running `envhub --version`
+  - The version check now runs synchronously when using the `--version` flag
+  - Improved error handling for version checking
+
 ## [0.4.1] - 2023-07-25
 
 ### Added
@@ -28,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable encryption at rest
 - Team collaboration features
 
-[unreleased]: https://github.com/Okaymisba/EnvHub/compare/v0.3.6...HEAD
+[unreleased]: https://github.com/Okaymisba/EnvHub/compare/v0.4.1...HEAD
+[0.4.2]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.4.2
 [0.4.1]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.4.1
 [0.3.6]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.3.6
