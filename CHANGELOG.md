@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+[//]: # (## [Unreleased])
+
+## [0.4.1] - 2023-07-25
 
 ### Added
 - Added support for environment variable injection in production environments
@@ -27,4 +29,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Team collaboration features
 
 [unreleased]: https://github.com/Okaymisba/EnvHub/compare/v0.3.6...HEAD
+[0.4.1]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.4.1
 [0.3.6]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.3.6
