@@ -23,7 +23,7 @@ def check_for_updates_async():
             if version.parse(latest_version) > version.parse(current_version):
                 typer.secho(
                     f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
-                    f"\n   Upgrade with: pip install --upgrade envhub-cli\n   Or if using pipx: pipx upgrade envhub-cli",
+                    f"\n   Upgrade with: pip install --upgrade envhub-cli\n   Or if using pipx: pipx upgrade envhub-cli\n\n",
                     fg=typer.colors.YELLOW,
                 )
         except Exception:
@@ -57,12 +57,26 @@ def version_callback(value: bool):
         try:
             __version__ = importlib.metadata.version("envhub-cli")
             typer.echo(f"EnvHub CLI v{__version__}")
-            check_for_updates_async()
-        except ImportError:
-            typer.echo("EnvHub CLI")
-        except Exception:
-            typer.echo("EnvHub CLI (version unknown)")
-        raise typer.Exit()
+
+            try:
+                import requests
+                from packaging import version
+                current_version = __version__
+                response = requests.get("https://pypi.org/pypi/envhub-cli/json", timeout=3)
+                latest_version = response.json()["info"]["version"]
+
+                if version.parse(latest_version) > version.parse(current_version):
+                    typer.secho(
+                        f"\n⚠️  A new version of EnvHub is available: {current_version} → {latest_version}"
+                        f"\n   Upgrade with: pip install --upgrade envhub-cli\n   Or if using pipx: pipx upgrade envhub-cli\n\n",
+                        fg=typer.colors.YELLOW,
+                    )
+            except Exception:
+                pass
+            raise typer.Exit()
+        except importlib.metadata.PackageNotFoundError:
+            typer.echo("Version information not available. Package may not be installed.")
+            raise typer.Exit(code=1)
     return value
 
 
