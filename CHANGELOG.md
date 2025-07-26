@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[//]: # (## [Unreleased])
+## [Unreleased]
+
+### Added
+- Added functionality for decrypting environment variables and storing them in the `.env` file for development environment using `envhub decrypt`
+- Added functionality for decrypting environment variables and storing them in the `.env` file for production environment using `envhub decrypt-prod`
+- Added functionality for decrypting environment variables and injecting them into the environment and running a command for production environment using `envhub decrypt-prod -- <run-command>`
 
 ## [0.4.2] - 2023-07-25
 
