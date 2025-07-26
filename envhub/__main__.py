@@ -213,24 +213,24 @@ def reset_folder():
 
 
 @app.command("decrypt")
-def decrypt_command(command: list[str] = typer.Argument(..., help="Command to run with decrypted environment")):
+def decrypt_command(
+        command: list[str] = typer.Argument(None, help="Optional command to run with decrypted environment")):
     """
-    Decrypts the runtime environment and executes the specified command.
+    Decrypts configurations and either executes a provided command within a decrypted environment
+    or securely decrypts configurations without running additional commands.
 
-    This command enables the execution of another command in a runtime
-    environment with decrypted settings. Users are required to specify
-    the command as a list of strings, which will be concatenated into
-    a single executable command string.
-
-    :param command: The command to be executed with the decrypted
-        environment as a list of strings.
-    :type command: list[str]
-    :return: None
+    :param command: A list of strings representing an optional command to execute within a decrypted
+        runtime environment using the configurations. If no command is provided, only decryption
+        and storage will be performed.
     """
     from envhub.decrypt import decrypt_runtime_and_run_command
+    from envhub.decrypt_and_store import decrypt_and_store
 
-    command_str = " ".join(command)
-    decrypt_runtime_and_run_command(command_str)
+    if command:
+        command_str = " ".join(command)
+        decrypt_runtime_and_run_command(command_str)
+    else:
+        decrypt_and_store()
 
 
 @app.command("add")
