@@ -45,9 +45,6 @@ def decrypt_runtime_and_run_command(command: str) -> None:
             return
 
         try:
-            if not command:
-                typer.secho("No command provided to execute.", fg="yellow")
-                return
 
             command_parts = shlex.split(command)
 

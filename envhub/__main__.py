@@ -4,6 +4,8 @@
 
 import typer
 
+from envhub.decrypt_prod_by_api_key import decrypt_prod_by_api_key
+
 app = typer.Typer(help="EnvHub CLI - Manage your environment variables securely.")
 
 
@@ -335,6 +337,27 @@ def list_env_vars():
     except Exception as e:
         typer.secho(f"Error listing environment variables: {str(e)}", fg=typer.colors.RED)
         exit(1)
+
+
+@app.command("decrypt-prod")
+def decrypt_prod(command: list[str] = typer.Argument(None, help="Optional command to run with decrypted environment")):
+    """
+    Decrypts the production environment by using the provided command or default behavior.
+
+    This function is a command registered with Typer to decrypt the production environment.
+    If a command is provided, it will execute the command within the decrypted environment.
+    If no command is provided, the function will simply perform the decryption process.
+
+    :param command: List of command arguments to execute after decrypting the environment.
+    :type command: list[str]
+    :return: None
+    """
+
+    if command:
+        command_str = " ".join(command)
+        decrypt_prod_by_api_key(command=command_str)
+    else:
+        decrypt_prod_by_api_key()
 
 
 if __name__ == "__main__":
