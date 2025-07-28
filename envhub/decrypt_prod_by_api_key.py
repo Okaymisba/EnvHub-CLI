@@ -56,6 +56,8 @@ def decrypt_prod_by_api_key(command: str = None):
     if command:
         try:
 
+            os.environ.update(decrypted_envs)
+
             command_parts = shlex.split(command)
 
             process = subprocess.Popen(

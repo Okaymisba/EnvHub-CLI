@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [//]: # (## [Unreleased])
 
+## [0.5.2] - 2023-07-28
+
+## Fixed
+- Fixed the issue where the `envhub decrypt-prod` command was not updating the environment variables.
+
 ## [0.5.1] - 2023-07-26
 
 ### Added
@@ -43,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Team collaboration features
 
 [unreleased]: https://github.com/Okaymisba/EnvHub/compare/v0.4.1...HEAD
+[0.5.2]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.5.1
 [0.4.2]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.4.2
 [0.4.1]: https://github.com/Okaymisba/EnvHub/releases/tag/v0.4.1
