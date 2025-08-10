@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added versioning support for only paid users and for free users versions won't be created
 
+### Fixed
+- Fixed: Strip whitespace from environment variable names when writing to .env file to prevent potential parsing issues
+
 ## [0.5.2] - 2023-07-28
 
 ## Fixed
