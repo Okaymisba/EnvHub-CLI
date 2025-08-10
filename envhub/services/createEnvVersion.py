@@ -8,57 +8,90 @@ from envhub.services.getCurrentEnvVariables import get_current_env_variables
 from envhub.utils.crypto import CryptoUtils
 
 
-async def create_env_version(project_id: str, env_entries: list, password: str, supabase) -> dict:
+async def create_env_version(
+        project_id: str,
+        env_entries: list[dict],
+        password: str,
+        supabase,
+        is_paid_user: bool = False
+):
     """
-    Creates a new environment version for the given project. This involves fetching existing
-    environment variables, determining the next version number, encrypting metadata and
-    variables, and inserting them into the appropriate database tables.
+    Creates a new environment version for a specific project. Depending on whether the user is a paid
+    user or not, it updates the environment variables and versions appropriately, by either modifying
+    the current version or creating a new one. It also handles encryption for the environment variables
+    and stores them within the given database.
 
-    :param project_id: The unique identifier of the project for which the environment version
-        is being created.
-    :type project_id: str
-    :param env_entries: A list containing a new environment variable entry, where the first
-        element is the variable name and the second element is its value.
-    :type env_entries: list
-    :param password: The encryption password used to encrypt and decrypt environment variables.
-    :type password: str
-    :param supabase: The Supabase client instance used for database operations.
-    :return: A dictionary representing the newly created version's metadata.
-    :rtype: dict
-    :raises SystemExit: If an error occurs during decryption or any other process, the
-        application exits with an error message.
+    :param project_id: The unique identifier of the project for which the environment version is being created
+    :param env_entries: A list of environment entries, where each entry is represented as a dictionary
+      containing environment variable name and value
+    :param password: The encryption key used to securely encrypt and decrypt environment variable values
+    :param supabase: An instance of the database client to handle all read and write operations for the environment
+      versions and variables
+    :param is_paid_user: A flag indicating whether the user is a paid user; if False, existing
+      versions may be overwritten instead of creating new ones (default is False)
     """
     try:
         existing_variables = get_current_env_variables(supabase, project_id)
 
         version_resp = supabase \
             .table('env_versions') \
-            .select('version_number') \
-            .filter('project_id', 'eq', project_id) \
+            .select('id, version_number') \
+            .eq('project_id', project_id) \
             .order('version_number', desc=True) \
             .limit(1) \
             .execute()
 
         existing_versions = version_resp.data or []
-        next_version_number = (existing_versions[0]['version_number'] + 1) if existing_versions else 1
+        version_id = None
+        version_number = None
 
-        dummy_encryption = CryptoUtils.encrypt('version_metadata', password)
+        if not is_paid_user:
+            if existing_versions:
+                delete_resp = supabase \
+                    .table('env_variables') \
+                    .delete() \
+                    .eq('version_id', existing_versions[0]['id']) \
+                    .execute()
 
-        version_insert_resp = supabase \
-            .table('env_versions') \
-            .insert({
-            'project_id': project_id,
-            'version_number': next_version_number,
-            'variable_count': len(existing_variables) + 1,
-            'salt': dummy_encryption['salt'],
-            'nonce': dummy_encryption['nonce'],
-            'tag': dummy_encryption['tag']
-        }) \
-            .execute()
+                version_id = existing_versions[0]['id']
+                version_number = existing_versions[0]['version_number']
+            else:
+                version_number = 1
+                dummy_encryption = CryptoUtils.encrypt('version_metadata', password)
 
-        version = version_insert_resp.data[0]
+                version_insert = supabase.table('env_versions').insert({
+                    'project_id': project_id,
+                    'version_number': version_number,
+                    'variable_count': len(env_entries),
+                    'salt': dummy_encryption['salt'],
+                    'nonce': dummy_encryption['nonce'],
+                    'tag': dummy_encryption['tag']
+                }).execute()
+
+                version = version_insert.data[0] if version_insert.data and len(version_insert.data) > 0 else None
+                if not version:
+                    raise Exception("Failed to create version")
+                version_id = version['id']
+        else:
+            version_number = (existing_versions[0]['version_number'] + 1) if existing_versions else 1
+            dummy_encryption = CryptoUtils.encrypt('version_metadata', password)
+
+            version_insert = supabase.table('env_versions').insert({
+                'project_id': project_id,
+                'version_number': version_number,
+                'variable_count': len(existing_variables) + len(env_entries),
+                'salt': dummy_encryption['salt'],
+                'nonce': dummy_encryption['nonce'],
+                'tag': dummy_encryption['tag']
+            }).execute()
+
+            version = version_insert.data[0] if version_insert.data and len(version_insert.data) > 0 else None
+            if not version:
+                raise Exception("Failed to create version")
+            version_id = version['id']
 
         all_entries = []
+
 
         for existing_var in existing_variables:
             try:
@@ -75,17 +108,16 @@ async def create_env_version(project_id: str, env_entries: list, password: str, 
                     'value': decrypted_value
                 })
             except Exception as e:
-                typer.secho(f"Error decrypting environment variable: {e}", fg=typer.colors.RED)
-                exit(1)
+                print(f"Failed to decrypt existing variable {existing_var['env_name']}: {e}")
 
-        all_entries.append({"name": env_entries[0], "value": env_entries[1]})
+        all_entries.extend(env_entries)
+
         env_variables = []
-
         for entry in all_entries:
             encrypted = CryptoUtils.encrypt(entry['value'], password)
             env_variables.append({
                 'project_id': project_id,
-                'version_id': version['id'],
+                'version_id': version_id,
                 'env_name': entry['name'],
                 'env_value_encrypted': encrypted['ciphertext'],
                 'salt': encrypted['salt'],
@@ -95,8 +127,6 @@ async def create_env_version(project_id: str, env_entries: list, password: str, 
 
         supabase.table('env_variables').insert(env_variables).execute()
 
-        return version
-
     except Exception as e:
         typer.secho(f"Error creating environment version: {str(e)}", fg=typer.colors.RED)
-        exit(1)
+        raise

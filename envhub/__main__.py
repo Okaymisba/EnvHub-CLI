@@ -252,7 +252,7 @@ def add_env_var():
     with open(".envhub", "r") as f:
         json_config = json.load(f)
     try:
-        asyncio.run(add([env_name, env_value],
+        asyncio.run(add([{"name": env_name, "value": env_value}],
                         json_config.get("password"),
                         json_config.get("role"),
                         json_config.get("project_id")

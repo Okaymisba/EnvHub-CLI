@@ -7,10 +7,11 @@ import typer
 from envhub import auth
 from envhub.services.createEnvVersion import create_env_version
 from envhub.services.getEncryptedProjectPassword import get_encrypted_project_password
+from envhub.services.getSubscriptionLimitsForProject import get_subscription_limits_for_project
 from envhub.utils.crypto import CryptoUtils
 
 
-async def add(entries: list, password: str, current_user_role: str, project_id: str):
+async def add(entries: list[dict], password: str, current_user_role: str, project_id: str):
     """
     Adds environment variables to a specified project. The function ensures that only users with proper
     roles ('admin' or 'owner') can perform the operation. For 'admin' users, it manages decryption and
@@ -33,8 +34,11 @@ async def add(entries: list, password: str, current_user_role: str, project_id: 
             typer.secho("You don't have permission to add environment variables.", fg=typer.colors.RED)
             exit(1)
 
+        client = auth.get_authenticated_client()
+        subscription_limits_for_project = await get_subscription_limits_for_project(client, project_id)
+        is_paid = subscription_limits_for_project.get("plan") != "Free"
+
         if current_user_role == 'admin':
-            client = auth.get_authenticated_client()
             encrypted_password = get_encrypted_project_password(client, project_id, client.auth.get_user().user.id)
 
             if not encrypted_password:
@@ -47,12 +51,12 @@ async def add(entries: list, password: str, current_user_role: str, project_id: 
                 typer.secho("Error: Failed to decrypt project password.", fg=typer.colors.RED)
                 exit(1)
 
-            await create_env_version(project_id, entries, decrypted_password, client)
+            await create_env_version(project_id, entries, decrypted_password, client, is_paid)
 
             return
 
         if current_user_role == 'owner':
-            await create_env_version(project_id, entries, password, auth.get_authenticated_client())
+            await create_env_version(project_id, entries, password, client, is_paid)
 
     except Exception as e:
         typer.secho(f"Error adding environment variables: {str(e)}", fg=typer.colors.RED)
